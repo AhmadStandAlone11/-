@@ -193,3 +193,18 @@ class Keyboards:
             url = f"tg://user?id={user_id}"
             buttons = [[InlineKeyboardButton("💬 تواصل", url=url)]]
         return InlineKeyboardMarkup(buttons)
+    
+    
+def get_start_keyboard(self) -> InlineKeyboardMarkup:
+    """Get the start keyboard."""
+    return self.main_menu()
+
+def get_admin_keyboard(self) -> InlineKeyboardMarkup:
+    """Get admin panel keyboard."""
+    return self.admin_panel()
+
+def get_cancel_keyboard(self) -> InlineKeyboardMarkup:
+    """Get cancel keyboard."""
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton("❌ إلغاء", callback_data="cancel")
+    ]])

@@ -5,7 +5,7 @@ from datetime import timedelta, datetime
 import json
 from typing import Dict, Any
 from decimal import Decimal
-
+from telegram.ext import PicklePersistence, PersistenceInput
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -31,17 +31,7 @@ from purchase import get_purchase_manager
 from product_manager import get_product_manager
 from keyboards import Keyboards
 
-from handlers import (
-    start_command,
-    start_after_subscription,
-    cancel_command,
-    handle_env_value,
-    back_to_main_callback,
-    cancel_callback,
-    handle_subscription_check,
-    CHECK_SUBSCRIPTION,
-    is_admin
-)
+from handlers import *
 
 # Initialize components
 config = get_config()
@@ -193,8 +183,7 @@ def main() -> None:
                 ],
             },
             fallbacks=[
-                CommandHandler("cancel", cancel_command),
-                CallbackQueryHandler(cancel_callback, pattern="^cancel$"),
+               # CallbackQueryHandler(cancel_callback, pattern="^cancel$"),
                 CallbackQueryHandler(back_to_main_callback, pattern="^back_to_main$"),
             ],
             name="main_conversation",

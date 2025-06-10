@@ -577,7 +577,6 @@ def get_product_management_handler() -> ConversationHandler:
                 lambda u, c: manage_category(u, c), 
                 pattern=r"^manage_(games|apps)$"
             ),
-            CommandHandler('cancel', cancel_command)
         ],
         name="product_management",
         persistent=True

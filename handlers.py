@@ -36,9 +36,8 @@ log_manager = get_log_manager()
     EDITING_ENV_VALUE,
     HANDLE_SYRIATEL_NUMBERS,
     HANDLE_USDT_WALLETS,
-    WAITING_FOR_SHAMCASH_TYPE,
     CHECK_SUBSCRIPTION
-) = range(19)
+) = range(18)
 
 async def create_subscription_keyboard() -> InlineKeyboardMarkup:
     """Create keyboard with subscription button and check button."""
@@ -156,4 +155,45 @@ async def start_after_subscription(update: Update, context: ContextTypes.DEFAULT
         if 'conn' in locals():
             conn.close()
 
-# باقي الدوال كما هي مع إضافة تحسينات بسيطة للتوافق
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the /help command."""
+    help_text = (
+        "💎 مرحباً بك في متجر الدايموند\n\n"
+        "📝 الأوامر المتاحة:\n"
+        "/start - بدء البوت\n"
+        "/help - عرض هذه المساعدة\n"
+        "/cancel - إلغاء العملية الحالية\n\n"
+        "👋 للبدء، اضغط على الأزرار في القائمة الرئيسية\n\n"
+        f"💬 للدعم الفني تواصل مع: @{config.SUPPORT_USERNAME}"
+    )
+    await update.message.reply_text(help_text)
+    
+async def restart_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Restarts the bot."""
+    user_id = update.message.from_user.id
+    if user_id in config.ADMINS:
+        await update.message.reply_text("جاري إعادة تشغيل البوت...")
+        await context.application.shutdown()
+        os.execl(sys.executable, sys.executable, *sys.argv)
+    else:
+        await update.message.reply_text("ليس لديك صلاحية لتنفيذ هذا الأمر.")
+    
+def is_admin(user_id: int) -> bool:
+    """Check if user is admin."""
+    return user_id in config.ADMINS
+
+async def back_to_main_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Return to main menu."""
+    query = update.callback_query
+    await query.answer()
+    
+async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Cancel and end the conversation."""
+    user = update.effective_user
+    
+    await update.message.reply_text(
+        "❌ تم إلغاء العملية الحالية",
+        reply_markup=Keyboards.main_menu(is_admin(user.id))
+    )
+    context.user_data.clear()
+    return ConversationHandler.END

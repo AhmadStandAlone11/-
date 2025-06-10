@@ -461,6 +461,115 @@ class Database:
             logger.error(f"Error getting transaction volume: {e}")
             return Decimal('0')
      
+    async def get_user_balance(self, user_id: int) -> Decimal:
+        """Get user's current balance."""
+        conn = None
+        try:
+            conn = self.get_connection()
+            c = conn.cursor()
+            c.execute("SELECT balance FROM users WHERE user_id = ?", (user_id,))
+            result = c.fetchone()
+            return Decimal(str(result['balance'])) if result else Decimal('0')
+        except Exception as e:
+            self.logger.error(f"Error getting user balance: {e}")
+            return Decimal('0')
+        finally:
+            if conn:
+                conn.close()
+
+    async def get_order(self, order_id: str) -> Optional[Dict]:
+        """Get order details."""
+        conn = None
+        try:
+            conn = self.get_connection()
+            c = conn.cursor()
+            c.execute("""
+                SELECT * FROM orders 
+                WHERE order_id = ?
+            """, (order_id,))
+            result = c.fetchone()
+            return dict(result) if result else None
+        except Exception as e:
+            self.logger.error(f"Error getting order: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+
+    async def update_user_balance(self, user_id: int, amount: Decimal) -> bool:
+        """Update user balance."""
+        conn = None
+        try:
+            conn = self.get_connection()
+            c = conn.cursor()
+        
+            c.execute("BEGIN TRANSACTION")
+        
+            c.execute("""
+                UPDATE users 
+                SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE user_id = ? AND balance + ? >= 0
+            """, (str(amount), user_id, str(amount)))
+            
+            if c.rowcount > 0:
+                c.execute("COMMIT")
+                return True
+            
+            c.execute("ROLLBACK")
+            return False
+        
+        except Exception as e:
+            if conn:
+                c.execute("ROLLBACK")
+            self.logger.error(f"Error updating balance: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    async def create_order(
+        self,
+        user_id: int,
+        product_type: str,
+        product_id: str,
+        game_id: str,
+        price: Decimal,
+        quantity: int = 1
+    ) -> Optional[int]:
+        """Create a new order."""
+        conn = None
+        try:
+            conn = self.get_connection()
+            c = conn.cursor()
+        
+            c.execute("BEGIN TRANSACTION")
+        
+            c.execute("""
+                INSERT INTO orders (
+                    user_id, product_type, product_id, game_id,
+                    price, quantity, created_at, status
+                ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'pending')
+                RETURNING order_id
+            """, (user_id, product_type, product_id, game_id, str(price), quantity))
+         
+            result = c.fetchone()
+            if result:
+                order_id = result['order_id']
+                c.execute("COMMIT")
+                return order_id
+            
+            c.execute("ROLLBACK")
+            return None
+        
+        except Exception as e:
+            if conn:
+                c.execute("ROLLBACK")
+            self.logger.error(f"Error creating order: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+    
     async def create_transaction(
         self,
         tx_id: str,
